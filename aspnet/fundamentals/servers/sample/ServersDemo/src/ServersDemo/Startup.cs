@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -40,8 +41,7 @@ namespace ServersDemo
                 await context.Response.WriteAsync($"Local connection info: {context.Connection.LocalIpAddress}:{context.Connection.LocalPort}\r\n");
                 await context.Response.WriteAsync($"Remote connection info: {context.Connection.RemoteIpAddress}:{context.Connection.RemotePort}\r\n\r\n");
 
-                var requestUrl = $"{context.Request.Scheme}://{context.Request.Host}{context.Request.PathBase}{context.Request.Path}{context.Request.QueryString}";
-                await context.Response.WriteAsync($"Request URL: {requestUrl}");
+                await context.Response.WriteAsync($"Request URL: {context.Request.GetDisplayUrl()}");
             });
         }
     }

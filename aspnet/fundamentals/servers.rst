@@ -16,7 +16,7 @@ ASP.NET Core is completely decoupled from the web server environment that hosts 
 Servers and WebHostBuilderExtensions
 ------------------------------------
 
-ASP.NET Core was designed to decouple web applications from the underlying HTTP server. Traditionally, ASP.NET apps have been windows-only hosted on Internet Information Server (IIS). The recommended way to run ASP.NET Core applications on Windows is using IIS as a reverse-proxy server. The ASP.NET Core Module in IIS manages and proxies requests to the Kestrel HTTP server hosted out-of-process. ASP.NET Core ships with two different HTTP servers:
+ASP.NET Core was designed to decouple web applications from the underlying HTTP server. Traditionally, ASP.NET apps have been windows-only hosted on Internet Information Server (IIS). The recommended way to run ASP.NET Core applications on Windows is still using IIS, but as a reverse-proxy server. The ASP.NET Core Module in IIS manages and proxies requests to the Kestrel HTTP server hosted out-of-process. ASP.NET Core ships with two different HTTP servers:
 
 - Microsoft.AspNetCore.Server.WebListener (AKA WebListener, Windows-only)
 - Microsoft.AspNetCore.Server.Kestrel (AKA Kestrel, cross-platform)
@@ -27,7 +27,7 @@ The default web host for ASP.NET apps developed using Visual Studio is IIS Expre
 
 .. image:: /fundamentals/servers/_static/serverdemo-properties.png
 
-.. note:: IIS supports proxying requests to Kestrel but **not** WebListener.
+.. note:: The ASP.NET Core Module for IIS supports proxying requests to Kestrel but **not** WebListener.
 
 The sample project's *project.json* file includes the dependencies and tools required to support each server:
 
@@ -40,14 +40,14 @@ The sample project's *project.json* file includes the dependencies and tools req
 
 :dn:method:`~Microsoft.AspNetCore.Hosting.WebHostBuilderKestrelExtensions.UseKestrel` and :dn:method:`~Microsoft.AspNetCore.Hosting.WebHostBuilderWebListenerExtensions.UseWebListener` both have an overload taking an options configuration callback that can be used for server-specific configuration. For instance, WebListener exposes ``AuthenticationManager`` that can be used to configure the server's authentication. Configuration can easily be driven by JSON text files, environment variables, command line arguments and more with the help of ASP.NET Core's :doc:`configuration` facilities.
 
-``dotnet run`` will launch the application from the ``Main`` method. Kestrel is selected by default in the sample project. The sample is programmed so WebListener can be selected instead by passing ``--server WebListener`` as a command line argument. The sample explicitly reads the ``--server`` command line argument in ``Program.Main`` to determine whether to call :dn:method:`~Microsoft.AspNetCore.Hosting.WebHostBuilderKestrelExtensions.UseKestrel` or :dn:method:`~Microsoft.AspNetCore.Hosting.WebHostBuilderWebListenerExtensions.UseWebListener`. The ``--server`` command line flag is **not** interpreted by the ASP.NET Core framework to have any special meaning.
+Kestrel is selected by default in the sample project in the ``Program.Main`` method which is the entry point for the application. The sample is programmed so WebListener can be selected instead by passing ``--server WebListener`` as a command line argument. The sample explicitly reads the ``--server`` command line argument to determine whether to call :dn:method:`~Microsoft.AspNetCore.Hosting.WebHostBuilderKestrelExtensions.UseKestrel` or :dn:method:`~Microsoft.AspNetCore.Hosting.WebHostBuilderWebListenerExtensions.UseWebListener`. The ``--server`` command line flag is **not** interpreted by the ASP.NET Core framework to have any special meaning.
 
 .. note:: ``builder.UseUrls("http://localhost")`` configures Kestrel and WebListener to only listen to local requests. Replace "localhost" with "*" to also listen to external requests. 
 
 .. literalinclude:: servers/sample/ServersDemo/src/ServersDemo/Program.cs
   :linenos: 
-  :lines: 17-65
-  :emphasize-lines: 5,18,31-37,43-48
+  :lines: 17-68
+  :emphasize-lines: 5,12,18,22,28,34-40,46-51
   :language: c#
   :caption: Program.cs
   :dedent: 8
@@ -100,18 +100,21 @@ ASP.NET defines a number of :doc:`request-features`. The following table lists t
     - Yes
     - No
 
+ServerFeatures Collection
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The :dn:interface:`~Microsoft.AspNetCore.Builder.IApplicationBuilder` available in the ``Startup``'s ``Configure`` method exposes the ``ServerFeatures`` property of type :dn:interface:`~Microsoft.AspNetCore.Http.Features.IFeatureCollection`. Kestrel and WebListener both expose only a single feature, :dn:interface:`~Microsoft.AspNetCore.Hosting.Server.Features.IServerAddressesFeature`, but different server implementations may expose additional functionality. 
+
 Port 0 binding with Kestrel
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The :dn:interface:`~Microsoft.AspNetCore.Builder.IApplicationBuilder` available in the ``Startup``'s ``Configure`` method exposes ``ServerFeatures`` of type :dn:interface:`~Microsoft.AspNetCore.Http.Features.IFeatureCollection`. Kestrel and WebListener both expose only a single :dn:interface:`~Microsoft.AspNetCore.Hosting.Server.Features.IServerAddressesFeature`, but different server implementations may expose additional functionality. 
 
 Kestrel supports dynamically binding to unspeicified available port by specifying port number 0 in :dn:method:`~Microsoft.AspNetCore.Hosting.HostingAbstractionsWebHostBuilderExtensions.UseUrls`, e.g. ``builder.UseUrls("http://127.0.0.1:0")``. The :dn:interface:`~Microsoft.AspNetCore.Hosting.Server.Features.IServerAddressesFeature` can be used to determine which available port Kestrel actually bound to.
 
 .. literalinclude:: servers/sample/ServersDemo/src/ServersDemo/Startup.cs
   :linenos:
-  :lines: 24-46
+  :lines: 25-46
   :emphasize-lines: 5
-  :language: c#
+  :language: none
   :dedent: 8
 
 .. note:: Binding to ``http://localhost:0`` is not supported. You must either bind to ``http://127.0.0.1:0``, ``http://[::1]:0`` or both individually.
@@ -127,6 +130,15 @@ ASP.NET Core Module
 ^^^^^^^^^^^^^^^^^^^
 In ASP.NET Core on Windows, the web application is hosted by an external process outside of IIS. The ASP.NET Core Module is an IIS 7.5+ module which is responsible for process management of HTTP listeners and used to proxy requests to the processes that it manages.
 
+.. _kestrel:
+
+Kestrel
+-------
+
+Kestrel is a cross-platform web server based on `libuv <https://github.com/libuv/libuv>`_, a cross-platform asynchronous I/O library. You add support for Kestrel by including ``Microsoft.AspNetCore.Server.Kestrel`` in your project's dependencies listed in *project.json* and calling :dn:method:`~Microsoft.AspNetCore.Hosting.WebHostBuilderKestrelExtensions.UseKestrel`.
+
+Learn more about working with Kestrel to create :doc:`/tutorials/your-first-mac-aspnet`.
+
 .. _weblistener:
 
 WebListener
@@ -136,14 +148,6 @@ WebListener is a Windows-only HTTP server for ASP.NET Core. It runs directly on 
 
 You can add support for WebListener to your ASP.NET application by adding the ``Microsoft.AspNetCore.Server.WebListener`` dependency in *project.json* and calling :dn:meth:`~Microsoft.AspNetCore.Hosting.WebHostBuilderWebListenerExtensions.UseWebListener`
 
-.. _kestrel:
-
-Kestrel
--------
-
-Kestrel is a cross-platform web server based on `libuv <https://github.com/libuv/libuv>`_, a cross-platform asynchronous I/O library. You add support for Kestrel by including ``Microsoft.AspNetCore.Server.Kestrel`` in your project's dependencies listed in *project.json* and calling :dn:method:`~Microsoft.AspNetCore.Hosting.WebHostBuilderKestrelExtensions.UseKestrel`.
-
-Learn more about working with Kestrel to create :doc:`/tutorials/your-first-mac-aspnet`.
 
 Choosing a server
 -----------------

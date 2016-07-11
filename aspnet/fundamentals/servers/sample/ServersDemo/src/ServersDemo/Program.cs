@@ -25,14 +25,17 @@ namespace ServersDemo
 
             var builder = new WebHostBuilder()
                 .UseContentRoot(Directory.GetCurrentDirectory())
+                .UseConfiguration(config)
                 .UseStartup<Startup>();
 
-            // The default url is http://localhost:5000 if none is specified.
+            // The default listening address is http://localhost:5000 if none is specified.
             // Replace "localhost" with "*" to listen to external requests.
-            if (config["address"] != null)
-            {
-                builder.UseUrls(config["address"]);
-            }
+            // You can use the --urls flag to change the listening address. Ex:
+            // > dotnet run --urls http://*:8080;http://*:8081
+
+            // Uncomment the following to configure URLs programmatically.
+            // Since this is after UseConfiguraiton(config), this will clobber command line configuration.
+            //builder.UseUrls("http://*:8080", "http://*:8081");
 
             // If this app isn't hosted by IIS, UseIISIntegration() no-ops.
             // It isn't possible to both listen to requests directly and from IIS using the same WebHost,
@@ -75,7 +78,7 @@ namespace ServersDemo
             {
                 if (string.Equals(Server, "WebListener", StringComparison.OrdinalIgnoreCase))
                 {
-                    Console.WriteLine("Error: WebListener cannot be used with IIS");
+                    Console.WriteLine("Error: WebListener cannot be used with the ASP.NET Core Module for IIS.");
                     return 1;
                 }
 
